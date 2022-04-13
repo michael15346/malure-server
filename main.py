@@ -29,25 +29,10 @@ db = MongoClient(CONNECTION_STRING_BIRDS)
 
 @app.route("/search", methods=['POST'])
 def bird_search():
-    print("te")
     rec = bytearray(request.data)
-    # print(rec)
-    audio_data = io.BytesIO(rec)  # empty array - just for tes  ting
-    # switch content type depending on what the client has sent
-    if request.content_type.startswith('audio/opus'):
-        print("Opus!")
-    elif request.content_type.startswith('audio/aac'):
-        print("AAC!")
-    elif request.content_type.startswith('audio/mpeg'):
-        print("MP3!")
-    else:
-        print("What")
-
     result = dict()
-    # print(audio_data.read()[:100])
-    # print(miniaudio.decode(rec).samples)
     spec = amplitude_to_db(
-        melspectrogram(array(rec, dtype=float), 48000, n_mels=30, n_fft=4800), ref=np.max)
+        melspectrogram(y=array(rec, dtype=float), sr=48000, n_mels=30, n_fft=4800), ref=np.max)
     spectrogram_split = np.array_split(spec.T, np.arange(1000, spec.T.shape[0], 1000), axis=0)
     spectrogram_split[-1] = np.pad(spectrogram_split[-1], ((0, 1000 - spectrogram_split[-1].shape[0]), (0, 0)))
 
@@ -60,7 +45,7 @@ def bird_search():
                 result = result.update({class_name: float(max(prediction[i], result[class_name]))})
             elif prediction[i] > 0.1:
                 result.update({class_name: float(prediction[i])})
-    return Response(dumps({result}),
+    return Response(dumps(result),
                     mimetype='application/json')
 
 
